@@ -5,20 +5,24 @@ from ariadne.asgi import GraphQL
 import requests
 import os
 
+# URL do microsserviço de contatos.
+# Quando rodando com Docker Compose, usaremos o nome do serviço.
 CONTATOS_API_URL = os.getenv("CONTATOS_API_URL", "http://localhost:5001/contatos")
 
+# Definindo os tipos do schema
 query = QueryType()
 mutation = MutationType()
 
+# Resolvers para Query
 @query.field("contatos")
 def resolve_contatos(_, info) -> List]:
     try:
         response = requests.get(f"{CONTATOS_API_URL}")
-        response.raise_for_status()
+        response.raise_for_status() # Lança exceção para erros HTTP (4xx ou 5xx)
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Erro ao buscar contatos: {e}")
-        return
+        return # Retorna lista vazia em caso de erro
 
 @query.field("contato")
 def resolve_contato(_, info, id: str) -> Dict[str, Any] | None:
@@ -32,11 +36,12 @@ def resolve_contato(_, info, id: str) -> Dict[str, Any] | None:
         print(f"Erro ao buscar contato {id}: {e}")
         return None
 
+# Resolvers para Mutation
 @mutation.field("adicionarContato")
 def resolve_adicionar_contato(_, info, nome: str, categoria: str, telefones: List] = None) -> Dict[str, Any] | None:
     payload = {
         "nome": nome,
-        "categoria": categoria.lower(),
+        "categoria": categoria.lower(), # API REST espera minúsculas para enums
         "telefones":
     }
     if telefones:
@@ -48,8 +53,10 @@ def resolve_adicionar_contato(_, info, nome: str, categoria: str, telefones: Lis
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Erro ao adicionar contato: {e}")
+        # Poderia levantar uma exceção GraphQL aqui para melhor feedback ao cliente
         return None
 
+# Definição do Schema GraphQL (SDL)
 type_defs = """
     scalar ID
 
@@ -72,17 +79,17 @@ type_defs = """
 
     input TelefoneInput {
         numero: String!
-        tipo: String!
+        tipo: String! # Idealmente um Enum: MOVEL, FIXO, COMERCIAL
     }
 
     type Mutation {
         adicionarContato(
             nome: String!,
-            telefones:,
-            categoria: String!
+            telefones:, # Lista de telefones
+            categoria: String! # Idealmente um Enum: FAMILIAR, PESSOAL, COMERCIAL
         ): Contato
     }
 """
 
 schema = make_executable_schema(type_defs, query, mutation)
-app = GraphQL(schema, debug=True)
+app = GraphQL(schema, debug=True) # Aplicação ASGI
