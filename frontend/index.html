@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda de Contatos</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Agenda de Contatos</h1>
+
+    <div class="container">
+        <div class="form-container">
+            <h2>Adicionar Novo Contato</h2>
+            <form id="formAdicionarContato">
+                <div>
+                    <label for="nome">Nome:</label>
+                    <input type="text" id="nome" name="nome" required>
+                </div>
+                <div>
+                    <label for="categoria">Categoria:</label>
+                    <select id="categoria" name="categoria">
+                        <option value="PESSOAL">Pessoal</option>
+                        <option value="FAMILIAR">Familiar</option>
+                        <option value="COMERCIAL">Comercial</option>
+                    </select>
+                </div>
+                <fieldset id="telefonesContainer">
+                    <legend>Telefones</legend>
+                    <button type="button" id="btnAdicionarTelefone">Adicionar Telefone</button>
+                </fieldset>
+                <button type="submit">Salvar Contato</button>
+            </form>
+            <p id="mensagemStatus"></p>
+        </div>
+
+        <div class="lista-container">
+            <h2>Contatos Cadastrados</h2>
+            <ul id="listaContatos">
+                </ul>
+            <button id="btnAtualizarLista">Atualizar Lista</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
