@@ -1,0 +1,43 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  microsservico-contatos:
+    build:./microsservico-contatos
+    container_name: servico_contatos_app
+    ports:
+      - "5001:5001"
+    volumes:
+      -./microsservico-contatos:/app
+    networks:
+      - agenda-net
+
+  gateway-graphql:
+    build:./gateway-graphql
+    container_name: gateway_graphql_app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - microsservico-contatos
+    volumes:
+      -./gateway-graphql:/app
+    environment:
+      - CONTATOS_API_URL=http://microsservico-contatos:5001/contatos
+    networks:
+      - agenda-net
+
+  frontend:
+    build:
+      context:./frontend
+      dockerfile: Dockerfile
+    container_name: frontend_app
+    ports:
+      - "8080:80"
+    depends_on:
+      - gateway-graphql
+    networks:
+      - agenda-net
+
+networks:
+  agenda-net:
+    driver: bridge
