@@ -7,13 +7,13 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # Copiar o arquivo de dependências primeiro para aproveitar o cache do Docker
-COPY requirements.txt requirements.txt
+COPY ./requirements.txt .
 
 # Instalar as dependências
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar o restante dos arquivos da aplicação para o diretório de trabalho
-COPY..
+COPY . .
 
 # Expor a porta que a aplicação Flask vai usar (deve ser a mesma usada no app.py)
 EXPOSE 5001
