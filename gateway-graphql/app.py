@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from ariadne import QueryType, MutationType, make_executable_schema
 from ariadne.asgi import GraphQL
 import requests
@@ -20,7 +20,7 @@ def resolve_contatos(_, info) -> List[Dict[str, Any]]:
         return []
 
 @query.field("contato")
-def resolve_contato(_, info, id: str) -> Dict[str, Any] | None:
+def resolve_contato(_, info, id: str) -> Optional[Dict[str, Any]]:
     try:
         response = requests.get(f"{CONTATOS_API_URL}/{id}")
         if response.status_code == 404:
@@ -32,7 +32,7 @@ def resolve_contato(_, info, id: str) -> Dict[str, Any] | None:
         return None
 
 @mutation.field("adicionarContato")
-def resolve_adicionar_contato(_, info, nome: str, categoria: str, telefones: List[Dict[str, Any]] | None = None) -> Dict[str, Any] | None:
+def resolve_adicionar_contato(_, info, nome: str, categoria: str, telefones: Optional[List[Dict[str, Any]]] = None) -> Optional[Dict[str, Any]]:
     payload = {
         "nome": nome,
         "categoria": categoria
