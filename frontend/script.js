@@ -1,134 +1,147 @@
-// frontend/script.js
-document.addEventListener('DOMContentLoaded', () => {
-    const GRAPHQL_ENDPOINT = 'http://localhost:8000/graphql';
+const endpointGraphQL = "http://localhost:8000/graphql";
 
-    const formAdicionarContato = document.getElementById('formAdicionarContato');
-    const listaContatosUl = document.getElementById('listaContatos');
-    const btnAtualizarLista = document.getElementById('btnAtualizarLista');
-    const mensagemStatus = document.getElementById('mensagemStatus');
-    const btnAdicionarTelefone = document.getElementById('btnAdicionarTelefone');
-    const telefonesContainer = document.getElementById('telefonesContainer');
-    let telefoneCount = 0;
+const listaContatosDiv = document.getElementById("listaContatos");
+const formContato = document.getElementById("formContato");
+const telefonesContainer = document.getElementById("telefonesContainer");
+const btnAddTelefone = document.getElementById("btnAddTelefone");
 
-    async function fetchGraphQL(query, variables = {}) {
-        try {
-            const response = await fetch(GRAPHQL_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query, variables })
-            });
-            if (!response.ok) {
-                throw new Error(`Erro HTTP: ${response.status}`);
-            }
-            const jsonResponse = await response.json();
-            if (jsonResponse.errors) {
-                throw new Error(jsonResponse.errors.map(e => e.message).join('\n'));
-            }
-            return jsonResponse.data;
-        } catch (error) {
-            mensagemStatus.textContent = `Erro: ${error.message}`;
-            mensagemStatus.style.color = '#d9534f';
-            console.error("Erro na requisição GraphQL:", error);
-            throw error;
-        }
-    }
+btnAddTelefone.addEventListener("click", () => {
+    const div = document.createElement("div");
+    div.classList.add("telefone");
+    div.innerHTML = `
+    <label>Número: <input type="text" class="numero" required></label>
+    <label>Tipo:
+        <select class="tipo" required>
+        <option value="">Selecione</option>
+        <option value="MOVEL">Móvel</option>
+        <option value="FIXO">Fixo</option>
+        <option value="COMERCIAL">Comercial</option>
+        </select>
+    </label>
+    <button type="button" class="btnRemoveTelefone">Remover</button>
+    `;
+    telefonesContainer.appendChild(div);
 
-    async function carregarContatos() {
-        const query = `
-            query {
-                contatos {
-                    id
-                    nome
-                    categoria
-                    telefones { numero tipo }
-                }
-            }
-        `;
-        try {
-            const data = await fetchGraphQL(query);
-            listaContatosUl.innerHTML = '';
-            if (data && data.contatos && data.contatos.length > 0) {
-                data.contatos.forEach(contato => {
-                    const li = document.createElement('li');
-                    let telefonesStr = "Sem telefones";
-                    if (contato.telefones && contato.telefones.length > 0) {
-                        telefonesStr = contato.telefones.map(t => `${t.numero} (${t.tipo})`).join(', ');
-                    }
-                    li.innerHTML = `<strong>${contato.nome}</strong> (Cat: ${contato.categoria}) <br> <small>Telefones: ${telefonesStr}</small>`;
-                    listaContatosUl.appendChild(li);
-                });
-            } else {
-                listaContatosUl.innerHTML = '<li>Nenhum contato cadastrado.</li>';
-            }
-            mensagemStatus.textContent = 'Lista de contatos atualizada.';
-            mensagemStatus.style.color = '#3c763d';
-        } catch (error) {
-            // A mensagem de erro já é tratada em fetchGraphQL
-        }
-    }
-
-    formAdicionarContato.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const nome = document.getElementById('nome').value;
-        const categoria = document.getElementById('categoria').value;
-        
-        const telefonesInputs =;
-        document.querySelectorAll('.telefone-entry').forEach(entry => {
-            const numero = entry.querySelector('input[name^="telefoneNumero"]').value;
-            const tipo = entry.querySelector('select').value;
-            if (numero && tipo) {
-                telefonesInputs.push({ numero, tipo: tipo.toUpperCase() });
-            }
-        });
-
-        const mutation = `
-            mutation AdicionarContato($nome: String!, $categoria: String!, $telefones:) {
-                adicionarContato(nome: $nome, categoria: $categoria, telefones: $telefones) {
-                    id
-                    nome
-                }
-            }
-        `;
-        const variables = { nome, categoria: categoria.toUpperCase(), telefones: telefonesInputs };
-
-        try {
-            const data = await fetchGraphQL(mutation, variables);
-            if (data && data.adicionarContato) {
-                mensagemStatus.textContent = `Contato "${data.adicionarContato.nome}" adicionado com sucesso!`;
-                mensagemStatus.style.color = '#3c763d';
-                formAdicionarContato.reset();
-                document.querySelectorAll('.telefone-entry').forEach(entry => entry.remove());
-                telefoneCount = 0;
-                carregarContatos();
-            }
-        } catch (error) {
-            // A mensagem de erro já é tratada em fetchGraphQL
-        }
+    div.querySelector(".btnRemoveTelefone").addEventListener("click", () => {
+        div.remove();
     });
-
-    btnAdicionarTelefone.addEventListener('click', () => {
-        telefoneCount++;
-        const div = document.createElement('div');
-        div.classList.add('telefone-entry');
-        div.innerHTML = `
-            <label for="telefoneNumero${telefoneCount}">Número:</label>
-            <input type="text" id="telefoneNumero${telefoneCount}" name="telefoneNumero${telefoneCount}" required>
-            <label for="telefoneTipo${telefoneCount}">Tipo:</label>
-            <select id="telefoneTipo${telefoneCount}" name="telefoneTipo${telefoneCount}">
-                <option value="MOVEL">Móvel</option>
-                <option value="FIXO">Fixo</option>
-                <option value="COMERCIAL">Comercial</option>
-            </select>
-            <button type="button" class="btnRemoverTelefone">Remover</button>
-        `;
-        telefonesContainer.insertBefore(div, btnAdicionarTelefone);
-
-        div.querySelector('.btnRemoverTelefone').addEventListener('click', function() {
-            this.parentElement.remove();
-        });
-    });
-
-    btnAtualizarLista.addEventListener('click', carregarContatos);
-
-    carregarContatos();
 });
+
+async function listarContatos() {
+    const query = `
+        query {
+            contatos {
+                id
+                nome
+                categoria
+                telefones {
+                    numero
+                    tipo
+                }
+            }
+        }
+    `;
+    try {
+        const res = await fetch(endpointGraphQL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query })
+        });
+        const data = await res.json();
+        if (data.errors) {
+            listaContatosDiv.innerText = "Erro ao buscar contatos.";
+            console.error(JSON.stringify(data.errors, null, 2));
+            return;
+        }
+        mostrarContatos(data.data.contatos);
+    } catch (err) {
+        listaContatosDiv.innerText = "Erro na comunicação com o servidor.";
+        console.error(err);
+    }
+}
+
+function mostrarContatos(contatos) {
+    if (!contatos || contatos.length === 0) {
+        listaContatosDiv.innerHTML = "<p>Nenhum contato cadastrado.</p>";
+        return;
+    }
+    listaContatosDiv.innerHTML = "";
+    contatos.forEach(c => {
+        const div = document.createElement("div");
+        div.classList.add("contato");
+        const categoriaFormatada = c.categoria.charAt(0).toUpperCase() + c.categoria.slice(1).toLowerCase();
+        
+        div.innerHTML = `
+            <strong>${c.nome}</strong> (<em>${categoriaFormatada}</em>)
+            <div class="telefone-lista">
+                Telefones:
+                <ul>
+                    ${c.telefones.map(t => {
+                        const tipoFormatado = t.tipo.charAt(0).toUpperCase() + t.tipo.slice(1).toLowerCase();
+                        return `<li>${tipoFormatado}: ${t.numero}</li>`
+                    }).join("")}
+                </ul>
+            </div>
+        `;
+        listaContatosDiv.appendChild(div);
+    });
+}
+
+formContato.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const nome = document.getElementById("nome").value.trim();
+    const categoria = document.getElementById("categoria").value;
+    const telefoneElements = [...telefonesContainer.querySelectorAll(".telefone")];
+
+    if (!nome || !categoria) {
+        alert("Por favor, preencha nome e categoria.");
+        return;
+    }
+
+    const telefones = telefoneElements.map(div => {
+        return {
+            numero: div.querySelector(".numero").value.trim(),
+            tipo: div.querySelector(".tipo").value
+        };
+    }).filter(t => t.numero && t.tipo);
+    
+    const mutation = `
+        mutation AdicionarContato($nome: String!, $categoria: Categoria!, $telefones: [TelefoneInput!]) {
+            adicionarContato(nome: $nome, categoria: $categoria, telefones: $telefones) {
+                id
+                nome
+            }
+        }
+    `;
+
+    const variables = { nome, categoria, telefones };
+
+    try {
+        const res = await fetch(endpointGraphQL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: mutation, variables })
+        });
+        const data = await res.json();
+        if (data.errors) {
+            alert("Erro ao adicionar contato. Verifique o console para detalhes.");
+            console.error(JSON.stringify(data.errors, null, 2));
+            return;
+        }
+        alert("Contato adicionado com sucesso!");
+        formContato.reset();
+        // Limpa os campos de telefone dinâmicos
+        telefonesContainer.innerHTML = "<h3>Telefones</h3>"; 
+        listarContatos();
+    } catch (err) {
+        alert("Erro na comunicação com o servidor.");
+        console.error(err);
+    }
+});
+
+// Botão listar contatos
+document.getElementById("btnListar").addEventListener("click", listarContatos);
+
+// Inicializa listagem na abertura da página
+listarContatos();
