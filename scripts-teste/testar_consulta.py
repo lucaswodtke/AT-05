@@ -1,58 +1,74 @@
-# scripts-teste/testar_consulta.py
 import requests
 import json
 import sys
 
-GRAPHQL_URL = "http://localhost:8000/graphql"
+# URL base da API do microsserviço de contatos
+API_URL = "http://localhost:5001/contatos"
 
-def consultar_contato_por_id(contato_id: str):
-    print(f"--- Teste de Consulta do Contato ID: {contato_id} ---")
-    
-    query = """
-    query ConsultarContato($id: ID!) {
-        contato(id: $id) {
-            id
-            nome
-            categoria
-            telefones {
-                numero
-                tipo
-            }
-        }
+def criar_contato_para_teste():
+    """Cria um contato temporário e retorna seu ID."""
+    contato_teste = {
+        "nome": "Contato de Consulta",
+        "telefones": [{"numero": "1111-1111", "tipo": "FIXO"}],
+        "categoria": "PESSOAL"
     }
-    """
-    variables = {"id": contato_id}
-    
+    headers = {'Content-Type': 'application/json'}
     try:
-        response = requests.post(GRAPHQL_URL, json={'query': query, 'variables': variables})
-        response.raise_for_status()
+        response = requests.post(API_URL, data=json.dumps(contato_teste), headers=headers)
+        if response.status_code == 201:
+            return response.json().get("id")
+        return None
+    except requests.exceptions.RequestException:
+        return None
+
+def testar_consulta_contato():
+    """
+    Testa a funcionalidade de consulta de um contato específico pelo ID.
+    """
+    print("--- Teste: Consulta de Contato Específico ---")
+    
+    print("1. Criando um contato de teste para obter um ID válido...")
+    contato_id = criar_contato_para_teste()
+
+    if not contato_id:
+        print("\n>> FALHA CRÍTICA: Não foi possível criar o contato inicial para o teste.")
+        print("   Verifique se o endpoint de inclusão está funcionando e se a API está online.")
+        sys.exit(1) # Encerra o script se não puder criar o contato
+
+    print(f"   Contato criado com sucesso! ID: {contato_id}")
+    
+    print("\n2. Testando a consulta do contato recém-criado...")
+    try:
+        # Constrói a URL para a consulta específica
+        url_consulta = f"{API_URL}/{contato_id}"
+        response = requests.get(url_consulta)
         
-        resultado = response.json()
+        print(f"   Status Code: {response.status_code}")
         
-        if "errors" in resultado:
-            print(f"Erro ao consultar contato {contato_id} (GraphQL):")
-            for error in resultado["errors"]:
-                print(f"- {error['message']}")
-        elif "data" in resultado and "contato" in resultado["data"]:
-            contato_consultado = resultado["data"]["contato"]
-            if contato_consultado:
-                print("Contato encontrado:")
-                print(json.dumps(contato_consultado, indent=2, ensure_ascii=False))
-            else:
-                print(f"Contato com ID {contato_id} não encontrado.")
+        if response.status_code == 200:
+            print("   Contato encontrado:")
+            print(json.dumps(response.json(), indent=2, ensure_ascii=False))
+            print("\n   >> SUCESSO: Consulta de contato existente funciona!")
         else:
-            print("Resposta inesperada do servidor:", resultado)
-            
+            print("   >> FALHA: Não foi possível consultar o contato criado.")
+
     except requests.exceptions.RequestException as e:
-        print(f"Erro de conexão ao tentar consultar contato: {e}")
-    except json.JSONDecodeError:
-        print(f"Não foi possível decodificar a resposta JSON: {response.text}")
+         print(f"\n>> ERRO DE CONEXÃO: {e}")
+
+    print("\n3. Testando a consulta de um contato com ID inválido...")
+    try:
+        url_invalida = f"{API_URL}/id-que-nao-existe-123"
+        response = requests.get(url_invalida)
+        
+        print(f"   Status Code para ID inválido: {response.status_code}")
+        if response.status_code == 404:
+            print("   >> SUCESSO: API retornou '404 Not Found' como esperado para um ID inválido.")
+        else:
+            print("   >> FALHA: API não retornou 404 para um ID inválido.")
+
+    except requests.exceptions.RequestException as e:
+         print(f"\n>> ERRO DE CONEXÃO: {e}")
+
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        id_para_consultar = sys.argv[1]
-        consultar_contato_por_id(id_para_consultar)
-    else:
-        print("Por favor, forneça o ID do contato como argumento.")
-        print("Exemplo de uso: python testar_consulta.py <ID_DO_CONTATO>")
-        print("Dica: Execute 'testar_inclusao.py' primeiro para obter um ID válido.")
+    testar_consulta_contato()
