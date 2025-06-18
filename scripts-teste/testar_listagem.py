@@ -1,50 +1,37 @@
-# scripts-teste/testar_listagem.py
 import requests
 import json
 
-GRAPHQL_URL = "http://localhost:8000/graphql"
+# URL base da API do microsserviço de contatos
+API_URL = "http://localhost:5001/contatos"
 
-def listar_todos_contatos():
-    print("--- Teste de Listagem de Contatos ---")
-    
-    query = """
-    query ListarContatos {
-        contatos {
-            id
-            nome
-            categoria
-            telefones {
-                numero
-                tipo
-            }
-        }
-    }
+def testar_listagem_contatos():
     """
-    
+    Testa a funcionalidade de listagem de todos os contatos da API.
+    """
+    print("--- Teste: Listagem de Contatos ---")
+
     try:
-        response = requests.post(GRAPHQL_URL, json={'query': query})
-        response.raise_for_status()
+        # Realiza a requisição GET para o endpoint /contatos
+        response = requests.get(API_URL)
         
-        resultado = response.json()
+        print(f"Status Code: {response.status_code}")
         
-        if "errors" in resultado:
-            print("Erro ao listar contatos (GraphQL):")
-            for error in resultado["errors"]:
-                print(f"- {error['message']}")
-        elif "data" in resultado and "contatos" in resultado["data"]:
-            lista_de_contatos = resultado["data"]["contatos"]
-            if lista_de_contatos:
-                print("Contatos cadastrados:")
-                print(json.dumps(lista_de_contatos, indent=2, ensure_ascii=False))
-            else:
-                print("Nenhum contato cadastrado encontrado.")
+        # A API deve retornar 200 (OK) em caso de sucesso
+        if response.status_code == 200:
+            contatos = response.json()
+            print(f"Total de contatos encontrados: {len(contatos)}")
+            print("Lista de Contatos:")
+            print(json.dumps(contatos, indent=2, ensure_ascii=False))
+            print("\n>> SUCESSO: Listagem de contatos funcionando corretamente!")
         else:
-            print("Resposta inesperada do servidor:", resultado)
+            print("Resposta de erro da API:")
+            print(response.text)
+            print("\n>> FALHA: Não foi possível listar os contatos.")
 
     except requests.exceptions.RequestException as e:
-        print(f"Erro de conexão ao tentar listar contatos: {e}")
-    except json.JSONDecodeError:
-        print(f"Não foi possível decodificar a resposta JSON: {response.text}")
+        print(f"\n>> ERRO DE CONEXÃO: Não foi possível conectar à API em {API_URL}.")
+        print(f"   Certifique-se de que os contêineres Docker estão em execução.")
+        print(f"   Erro: {e}")
 
 if __name__ == "__main__":
-    listar_todos_contatos()
+    testar_listagem_contatos()
