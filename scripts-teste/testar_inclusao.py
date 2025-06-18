@@ -1,60 +1,52 @@
-# scripts-teste/testar_inclusao.py
 import requests
 import json
 
-GRAPHQL_URL = "http://localhost:8000/graphql"
+# URL base da API do microsserviço de contatos
+API_URL = "http://localhost:5001/contatos"
 
-def adicionar_novo_contato():
-    print("--- Teste de Inclusão de Contato ---")
-    
-    mutation = """
-    mutation AdicionarNovoContato($nome: String!, $categoria: String!, $telefones:) {
-        adicionarContato(nome: $nome, categoria: $categoria, telefones: $telefones) {
-            id
-            nome
-            categoria
-            telefones {
-                numero
-                tipo
-            }
-        }
-    }
+def testar_inclusao_contato():
     """
+    Testa a funcionalidade de inclusão de um novo contato na API.
+    """
+    print("--- Teste: Inclusão de Novo Contato ---")
     
-    variables = {
-        "nome": "Maria Silva (Teste via Script)",
-        "categoria": "PESSOAL",
+    # Dados do novo contato que serão enviados no corpo da requisição
+    # Note que os valores para 'categoria' e 'tipo' devem ser os NOMES dos enums (maiúsculos)
+    novo_contato = {
+        "nome": "Prof. Teste de Software",
         "telefones": [
-            {"numero": "91234-5678", "tipo": "MOVEL"},
-            {"numero": "3322-1100", "tipo": "FIXO"}
-        ]
+            {"numero": "98765-4321", "tipo": "MOVEL"},
+            {"numero": "3322-1100", "tipo": "COMERCIAL"}
+        ],
+        "categoria": "COMERCIAL"
     }
     
+    headers = {
+        'Content-Type': 'application/json'
+    }
+
     try:
-        response = requests.post(GRAPHQL_URL, json={'query': mutation, 'variables': variables})
-        response.raise_for_status() # Lança exceção para erros HTTP
+        # Realiza a requisição POST para o endpoint /contatos
+        response = requests.post(API_URL, data=json.dumps(novo_contato), headers=headers)
         
-        resultado = response.json()
+        # Imprime o status code da resposta HTTP
+        print(f"Status Code: {response.status_code}")
         
-        if "errors" in resultado:
-            print("Erro ao adicionar contato (GraphQL):")
-            for error in resultado["errors"]:
-                print(f"- {error['message']}")
-        elif "data" in resultado and resultado["data"]["adicionarContato"]:
-            contato_adicionado = resultado["data"]["adicionarContato"]
-            print("Contato adicionado com sucesso:")
-            print(json.dumps(contato_adicionado, indent=2, ensure_ascii=False))
-            return contato_adicionado["id"] # Retorna o ID para uso em outros testes
+        # A API deve retornar 201 (Created) em caso de sucesso
+        if response.status_code == 201:
+            print("Resposta da API (contato criado):")
+            # Imprime o corpo da resposta formatado em JSON
+            print(json.dumps(response.json(), indent=2, ensure_ascii=False))
+            print("\n>> SUCESSO: Contato incluído com êxito!")
         else:
-            print("Resposta inesperada do servidor:", resultado)
-            
+            print("Resposta de erro da API:")
+            print(response.text)
+            print("\n>> FALHA: Não foi possível incluir o contato.")
+
     except requests.exceptions.RequestException as e:
-        print(f"Erro de conexão ao tentar adicionar contato: {e}")
-    except json.JSONDecodeError:
-        print(f"Não foi possível decodificar a resposta JSON: {response.text}")
-    return None
+        print(f"\n>> ERRO DE CONEXÃO: Não foi possível conectar à API em {API_URL}.")
+        print(f"   Certifique-se de que os contêineres Docker estão em execução.")
+        print(f"   Erro: {e}")
 
 if __name__ == "__main__":
-    id_novo_contato = adicionar_novo_contato()
-    if id_novo_contato:
-        print(f"\nID do contato adicionado para consulta: {id_novo_contato}")
+    testar_inclusao_contato()
