@@ -1,4 +1,3 @@
-# microsservico-contatos/models.py
 from enum import Enum
 import uuid
 
@@ -20,7 +19,10 @@ class Telefone:
         self.tipo = tipo
 
     def to_dict(self):
-        return {"numero": self.numero, "tipo": self.tipo.value}
+        return {
+            "numero": self.numero,
+            "tipo": self.tipo.name
+        }
 
 class Contato:
     def __init__(self, nome: str, categoria: CategoriaContato):
@@ -41,9 +43,8 @@ class Contato:
         return {
             "id": self.id,
             "nome": self.nome,
-            "telefones": [t.to_dict() for t in self.telefones],
-            "categoria": self.categoria.value
+            "telefones": [telefone.to_dict() for telefone in self.telefones],
+            "categoria": self.categoria.name
         }
 
-# Simulação de um "banco de dados" em memória
 banco_de_dados_contatos = {}
